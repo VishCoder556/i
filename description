@@ -1,11 +1,9 @@
 NEW FRANCUA LINGUA LANGUAGE
 
-.fl -- Franca Lingua
-    This programming language is inspired from the term "Francua Lingua", which means a language that unites many people of different ethnic backgrounds. The programming equivalent, as you would expect, derives from this term in computer science. Basically, it is a common programming language that unites people who code differently (C developers vs Python developers, for an example)
+.i -- I programming language
+    This programming language is inspired from the term "I", which means a language that unites many people of different ethnic backgrounds. The programming equivalent, as you would expect, derives from this term in computer science. Basically, it is a common programming language that unites people who code differently (C developers vs Python developers, for an example)
 
 
-
-Francua Lingua is the term I will call it, as there is no official name for it. You can recommend one if you want.
 
 
 int a = 5
