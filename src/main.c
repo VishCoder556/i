@@ -50,6 +50,10 @@ int main(int argc, char **argv){
     free(tokenizer->buffer);
 
     I_Parser *parser = I_parser_init(tokenizer);
+
+    while (I_parser_parse_body(parser) != 0){
+
+    }
     free(tokenizer);
     free(parser->tokens);
     free(parser);

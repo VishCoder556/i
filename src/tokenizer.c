@@ -56,13 +56,14 @@ char I_tokenizer_token(I_Tokenizer *tokenizer){
         case '}': I_tokenizer_append(tokenizer, I_TOKEN_RB, I_tokenizer_advance(tokenizer)); break;
         case '(': I_tokenizer_append(tokenizer, I_TOKEN_LP, I_tokenizer_advance(tokenizer)); break;
         case ')': I_tokenizer_append(tokenizer, I_TOKEN_RP, I_tokenizer_advance(tokenizer)); break;
-        case '\n': tokenizer->row++; tokenizer->col = 0; tokenizer->cur++; goto skip_increment;
-        case ' ': I_tokenizer_peek(tokenizer);
+        case '\n': tokenizer->row++; tokenizer->col = 0; tokenizer->cur++; break;
+        case ' ': I_tokenizer_peek(tokenizer); break;
         case '\"':
             I_tokenizer_peek(tokenizer);
             int valuecap = 100;
             char *value = malloc(valuecap);
             int len = 0;
+            c = tokenizer->buffer[tokenizer->cur];
             while (c != '\"'){
                 if (len >= valuecap){
                     valuecap += 5;
@@ -93,7 +94,6 @@ char I_tokenizer_token(I_Tokenizer *tokenizer){
                     I_tokenizer_peek(tokenizer);
                     c = tokenizer->buffer[tokenizer->cur];
                 }
-                I_tokenizer_peek(tokenizer);
                 I_tokenizer_append(tokenizer, I_TOKEN_ID, value);
                 break;
             }else if (isnumber(c)){
@@ -110,7 +110,6 @@ char I_tokenizer_token(I_Tokenizer *tokenizer){
                     tokenizer->col++;
                     c = tokenizer->buffer[tokenizer->cur];
                 }
-                I_tokenizer_peek(tokenizer);
                 I_tokenizer_append(tokenizer, I_TOKEN_INT, value);
                 break;
             }
