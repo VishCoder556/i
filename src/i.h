@@ -82,19 +82,14 @@ typedef struct {
     int tokencap;
     int tokenlen;
 
-
     int cur;
-
     int col;
     int row;
 }I_Tokenizer;
 
 
 I_Tokenizer *I_tokenizer_init(char *input_file, char *buffer);
-
 char I_tokenizer_token(I_Tokenizer *tokenizer);
-
-
 
 // ----- TYPES -------
 
@@ -125,8 +120,6 @@ int I_Type_DefinitionLen = 1; // Please update as you add more types
 
 void I_type_add(I_Type_Definition definition);
 char I_type_is(char *type, I_Type *typ); // For parsing: checks whether a given string corresponds to a type and which type it corresponds to
-
-
 
 
 // ----- PARSER -------
@@ -201,7 +194,6 @@ typedef struct {
 
     int cur;
 
-
     I_ASTs asts;
 }I_Parser;
 
@@ -266,9 +258,7 @@ char I_runtime_setup(I_Runtime *runtime);
 
 I_Runtime_Function *I_runtime_find_function(I_Runtime *runtime, char *name);
 
-
 void I_runtime_execute_function(I_Runtime *runtime, I_Runtime_Function *func);
-
 
 void I_runtime_add_function(I_Runtime *runtime, char *name, void (*callback)(struct I_Runtime *runtime));
 
@@ -285,10 +275,10 @@ I_Runtime *I_runtime_from_file(char *input_file);
 I_Runtime *I_runtime_from_code(char *input_file, char *buffer);
 
 
-
-
 // ---------- IMPLEMENTATION ----------
 
+#ifdef I_IMPLEMENTATION
+#define I_IMPLEMENTATION
 
 
 // ----- TOKENIZER -------
@@ -760,3 +750,5 @@ I_Runtime *I_runtime_from_file(char *input_file){
 
     return I_runtime_from_code(input_file, buffer);
 }
+
+#endif

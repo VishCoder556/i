@@ -2,7 +2,8 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-#include "include/i.h"
+#define I_IMPLEMENTATION
+#include "i.h"
 
 char *I_expect_arg(int *argused, int argc, char ***argv){
 // Pass by reference to make sure we change the main function
@@ -16,7 +17,8 @@ char *I_expect_arg(int *argused, int argc, char ***argv){
 }
 
 void _print(struct I_Runtime *runtime){
-    for (int i=0; i<I_runtime_get_args_count(runtime); i++){
+    int count = I_runtime_get_args_count(runtime);
+    for (int i=0; i < count; i++){
         switch (I_runtime_get_arg_type(runtime)){
             case I_RUNTIME_STRING: printf("%s ", I_runtime_pop_string(runtime)); break;
             case I_RUNTIME_INT: printf("%d ", I_runtime_pop_int(runtime)); break;
