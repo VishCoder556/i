@@ -29,14 +29,7 @@ void _print(struct I_Runtime *runtime){
 }
 
 int main(int argc, char **argv){
-    char *input_file = "";
-    char *output_file = "";
-    int i = 0;
-    while (*argv) {
-        char *arg = I_expect_arg(&i, argc, &argv);
-        input_file = arg;
-    }
-    I_Runtime *runtime = I_runtime_from_file(input_file);
+    I_Runtime *runtime = I_runtime_from_code("<input>", "main(){\nprint(string)}");
 
     I_runtime_add_function(runtime, "print", _print);
     I_runtime_add_symbol(runtime, "string", I_runtime_string("Hello"));

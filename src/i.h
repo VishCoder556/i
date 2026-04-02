@@ -93,41 +93,13 @@ char I_tokenizer_token(I_Tokenizer *tokenizer);
 
 // ----- TYPES -------
 
-typedef enum {
-    I_KIND_INT,
-    I_KIND_PTR,
-    I_KIND_UNKNOWN,
-    I_KIND_MAX,
-}I_Type_Kind;
-
-typedef struct {
-    I_Type_Kind kind;
-    char *name;
-}I_Type;
-
-typedef struct {
-    I_Type type;
-}I_Type_Definition;
-
-#define I_Type(kind, name) (I_Type){kind, name}
-
-#define I_Type_Definition(...) (I_Type_Definition){__VA_ARGS__}
-
-I_Type_Definition I_Type_Definitions[] = {
-    I_Type_Definition(I_Type(I_KIND_INT, "int")),
-};
-int I_Type_DefinitionLen = 1; // Please update as you add more types
-
-void I_type_add(I_Type_Definition definition);
-char I_type_is(char *type, I_Type *typ); // For parsing: checks whether a given string corresponds to a type and which type it corresponds to
-
-
 // ----- PARSER -------
 
 
 typedef enum {
     I_AST_EXPR_STRING,
     I_AST_EXPR_INT,
+    I_AST_EXPR_VAR,
     I_AST_EXPR_MAX
 }I_AST_ExprType;
 
@@ -169,7 +141,6 @@ typedef enum {
 
 typedef struct {
     char *name; // TODO: Implement more types
-    I_Type return_type;
     LinkedList(I_AST_Statement);
 }I_AST_Body_Funcdef;
 
@@ -240,12 +211,23 @@ typedef struct {
     struct I_Runtime_Function *next;
 }I_Runtime_Function;
 
+typedef struct {
+    char *name;
+    I_Runtime_Arg value;
+    struct I_Runtime_Symbol *next;
+}I_Runtime_Symbol;
+
+typedef struct {
+    LinkedList(I_Runtime_Symbol);
+}I_Runtime_Symbol_Table;
+
 // Runtime struct for I, contains important metadata
 typedef struct {
     LinkedList(I_AST_Body); // These are the old ASTs that will be converted soon
     I_AST_Body *cur;
     int idx;
 
+    I_Runtime_Symbol_Table symtab;
     LinkedList(I_Runtime_Arg); // I features an argument stack for functions
     LinkedList(I_Runtime_Function); // List of functions defined
 }I_Runtime;
@@ -264,7 +246,15 @@ void I_runtime_add_function(I_Runtime *runtime, char *name, void (*callback)(str
 
 char *I_runtime_pop_string(I_Runtime *runtime);
 
+I_Runtime_Arg I_runtime_string(char *a);
+
 int I_runtime_pop_int(I_Runtime *runtime);
+
+I_Runtime_Arg I_runtime_int(int a);
+
+void I_runtime_add_symbol(I_Runtime *runtime, char *name, I_Runtime_Arg arg);
+
+I_Runtime_Symbol I_runtime_find_symbol(I_Runtime *runtime, char *name);
 
 I_Runtime_ArgType I_runtime_get_arg_type(I_Runtime *runtime);
 
@@ -367,7 +357,8 @@ char I_tokenizer_token(I_Tokenizer *tokenizer){
                 int valuecap = 100;
                 char *value = malloc(valuecap);
                 int len = 0;
-                while (isalpha(c)){
+                // . and _ are allowed because they aren't used as tokens elsewhere
+                while (isalpha(c) || c == '.' || c == '_'){
                     if (len >= valuecap){
                         valuecap += 5;
                         value = realloc(value, valuecap);
@@ -407,23 +398,6 @@ skip_increment:
 
 
 // ----- TYPES -------
-
-void I_type_add(I_Type_Definition definition){
-    I_Type_Definitions[I_Type_DefinitionLen++] = definition;
-};
-char I_type_is(char *type, I_Type *typ){
-    for (int i=0; i<I_Type_DefinitionLen; i++){
-        char *type1 = I_Type_Definitions[i].type.name;
-        if (type != NULL && type1 != NULL){
-            if (strcmp(type, type1) == 0){
-                *typ = I_Type_Definitions[i].type;
-                return 1;
-            };
-        }
-    }
-    return 0;
-};
-
 
 
 
@@ -486,13 +460,16 @@ I_AST_Body *I_parser_next_ast_body(I_Parser *parser){
 I_AST_Expr I_parser_parse_expr(I_Parser *parser){
     I_AST_Expr expr = (I_AST_Expr){0};
     I_Token tok = parser->tokens[parser->cur];
-    assert(I_AST_EXPR_MAX == 2 && "Exhaustive handling of AST exprs -- please implement how tokens can be parsed to the AST");
+    assert(I_AST_EXPR_MAX == 3 && "Exhaustive handling of AST exprs -- please implement how tokens can be parsed to the AST");
     expr.type = I_AST_EXPR_MAX;
     if (tok.type == I_TOKEN_STRING){
         expr.type = I_AST_EXPR_STRING;
         expr.data.arg.value = tok.value;
     }else if(tok.type == I_TOKEN_INT){
         expr.type = I_AST_EXPR_INT;
+        expr.data.arg.value = tok.value;
+    }else if(tok.type == I_TOKEN_ID){
+        expr.type = I_AST_EXPR_VAR;
         expr.data.arg.value = tok.value;
     }
     I_parser_peek(parser);
@@ -533,34 +510,29 @@ char I_parser_parse_body(I_Parser *parser){
     assert(I_TOKEN_MAX == 9 && "Exhaustive handling of tokens -- please implement how the token should be parsed here");
     assert(I_AST_BODY_MAX == 1 && "Exhaustive handling of ASTs -- please implement how tokens can be parsed to the AST");
     if (token.type == I_TOKEN_ID){
-        I_Type type;
-        if (I_type_is(token.value, &type) == 1){
-            // Expect the AST to be a function definition
-            I_AST_Body *next_elem = I_parser_next_ast_body(parser);
-            next_elem->type = I_AST_BODY_FUNCDEF;
-            next_elem->data.funcdef.return_type = type;
-            I_parser_peek(parser);
-            token = parser->tokens[parser->cur];
-            I_parser_expect(parser, I_TOKEN_ID);
-            next_elem->data.funcdef.name = token.value; // Function name
-            I_parser_expect(parser, I_TOKEN_LP);
-            token = parser->tokens[parser->cur];
-            // TODO: Add function arguments
-            I_parser_expect(parser, I_TOKEN_RP);
-            I_parser_expect(parser, I_TOKEN_LB);
+        // Expect the AST to be a function definition
+        I_AST_Body *next_elem = I_parser_next_ast_body(parser);
+        next_elem->type = I_AST_BODY_FUNCDEF;
+        token = parser->tokens[parser->cur];
+        I_parser_expect(parser, I_TOKEN_ID);
+        next_elem->data.funcdef.name = token.value; // Function name
+        I_parser_expect(parser, I_TOKEN_LP);
+        token = parser->tokens[parser->cur];
+        // TODO: Add function arguments
+        I_parser_expect(parser, I_TOKEN_RP);
+        I_parser_expect(parser, I_TOKEN_LB);
 
 
-            InitLinkedList(next_elem->data.funcdef, I_AST_Statement);
-            while (parser->tokens[parser->cur].type != I_TOKEN_RB){
-                I_AST_Statement stmnt = I_parser_parse_statement(parser);
-                if (stmnt.type == I_AST_STATEMENT_MAX){
-                    assert(0 && "Something weird happened here || an error in the statement parsing that is apparent in the function definition body parsing");
-                }
-                AppendToLinkedList(next_elem->data.funcdef, I_AST_Statement, stmnt);
-                // Evaluate loop
+        InitLinkedList(next_elem->data.funcdef, I_AST_Statement);
+        while (parser->tokens[parser->cur].type != I_TOKEN_RB){
+            I_AST_Statement stmnt = I_parser_parse_statement(parser);
+            if (stmnt.type == I_AST_STATEMENT_MAX){
+                assert(0 && "Something weird happened here || an error in the statement parsing that is apparent in the function definition body parsing");
             }
-            I_parser_expect(parser, I_TOKEN_RB);
+            AppendToLinkedList(next_elem->data.funcdef, I_AST_Statement, stmnt);
+            // Evaluate loop
         }
+        I_parser_expect(parser, I_TOKEN_RB);
     }
     if (I_parser_check(parser) != 0){
         // Past standard bounds, return
@@ -628,9 +600,21 @@ I_Runtime_Function *I_runtime_find_function(I_Runtime *runtime, char *name){
     assert(0 && "Fatal Error: Could not find function");
 }
 
+I_Runtime_Symbol I_runtime_find_symbol(I_Runtime *runtime, char *name){
+    I_Runtime_Symbol *cur = GetLinkedListHead(runtime->symtab, I_Runtime_Symbol);
+    for (int i=0; i<GetLinkedListLen(runtime->symtab, I_Runtime_Symbol); i++){
+        if (strcmp(cur->name, name) == 0){
+            return *cur;
+        };
+        cur = cur->next;
+    };
+    assert(0 && "Could not find symbol");
+}
+
 I_Runtime_Arg I_runtime_run_expr(I_Runtime *runtime, I_AST_Expr *expr){
     I_Runtime_Arg arg = (I_Runtime_Arg){0};
     assert(I_RUNTIME_MAX == 2 && "Exhaustive handling of runtime argument in execution");
+    assert(I_AST_EXPR_MAX == 3 && "Exhaustive handling of runtime argument in execution");
     arg.type = I_RUNTIME_MAX;
     if (expr->type == I_AST_EXPR_STRING){
         arg.type = I_RUNTIME_STRING;
@@ -638,6 +622,9 @@ I_Runtime_Arg I_runtime_run_expr(I_Runtime *runtime, I_AST_Expr *expr){
     }else if (expr->type == I_AST_EXPR_INT){
         arg.type = I_RUNTIME_INT;
         arg.ptr = (void*)atoi(expr->data.arg.value);
+    }else if (expr->type == I_AST_EXPR_VAR){
+        I_Runtime_Symbol symbol = I_runtime_find_symbol(runtime, expr->data.arg.value);
+        return symbol.value;
     };
     return arg;
 }
@@ -702,6 +689,26 @@ int I_runtime_pop_int(I_Runtime *runtime){
     }
 }
 
+I_Runtime_Arg I_runtime_int(int a){
+    I_Runtime_Arg arg = (I_Runtime_Arg){0};
+    arg.type = I_RUNTIME_INT;
+    arg.ptr = (void*)a;
+    return arg;
+}
+I_Runtime_Arg I_runtime_string(char *a){
+    I_Runtime_Arg arg = (I_Runtime_Arg){0};
+    arg.type = I_RUNTIME_STRING;
+    arg.ptr = (void*)a;
+    return arg;
+}
+
+void I_runtime_add_symbol(I_Runtime *runtime, char *name, I_Runtime_Arg arg){
+    I_Runtime_Symbol symbol = (I_Runtime_Symbol){0};
+    symbol.name = name;
+    symbol.value = arg;
+    AppendToLinkedList(runtime->symtab, I_Runtime_Symbol, symbol);
+}
+
 I_Runtime_ArgType I_runtime_get_arg_type(I_Runtime *runtime){
     I_Runtime_Arg *arg = GetLinkedListHead((*runtime), I_Runtime_Arg);
     return arg->type;
@@ -715,7 +722,6 @@ I_Runtime *I_runtime_from_code(char *input_file, char *buffer){
     I_Tokenizer *tokenizer = I_tokenizer_init(input_file, buffer);
     while (I_tokenizer_token(tokenizer) == 0){
     };
-    free(tokenizer->buffer);
 
     I_Parser *parser = I_parser_init(tokenizer);
 
@@ -748,7 +754,9 @@ I_Runtime *I_runtime_from_file(char *input_file){
     buffer[count] = '\0';
     fclose(file);
 
-    return I_runtime_from_code(input_file, buffer);
+    char *text = I_runtime_from_code(input_file, buffer);
+    free(buffer);
+    return text;
 }
 
 #endif

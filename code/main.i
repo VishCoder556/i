@@ -1,3 +1,3 @@
-int main(){
-    print("Hello", 5, "World")
+main(){
+    print("Hello World")
 }
