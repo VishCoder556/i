@@ -2,10 +2,6 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-
-#include "include/tokenizer.h"
-#include "include/parser.h"
-#include "include/exec.h"
 #include "include/i.h"
 
 char *I_expect_arg(int *argused, int argc, char ***argv){
@@ -36,11 +32,7 @@ int main(int argc, char **argv){
     int i = 0;
     while (*argv) {
         char *arg = I_expect_arg(&i, argc, &argv);
-        if (strcmp(arg, "-o") == 0){
-            output_file = I_expect_arg(&i, argc, &argv);
-        }else {
-            input_file = arg;
-        }
+        input_file = arg;
     }
     I_Runtime *runtime = I_runtime_from_file(input_file);
     I_runtime_add_function(runtime, "print", _print);
