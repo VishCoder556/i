@@ -80,10 +80,10 @@ void I_runtime_run_statement(I_Runtime *runtime, I_AST_Statement *stmnt){
         for (int i=0; i<len; i++){
             I_Runtime_Arg arg = I_runtime_run_expr(runtime, expr);
             AppendToLinkedList((*runtime), I_Runtime_Arg, arg);
-            I_Runtime_Function *func = I_runtime_find_function(runtime, stmnt->data.funcall.name);
-            I_runtime_execute_function(runtime, func);
             expr = GetLinkedListNextElem(expr);
         };
+        I_Runtime_Function *func = I_runtime_find_function(runtime, stmnt->data.funcall.name);
+        I_runtime_execute_function(runtime, func);
         // for (int i=0; i<len; i++){
         //     PopTopLinkedList((*runtime), I_Runtime_Arg);
         // }
@@ -129,7 +129,11 @@ int I_runtime_pop_int(I_Runtime *runtime){
     }
 }
 
-I_AST_ExprType I_runtime_get_arg_type(I_Runtime *runtime){
+I_Runtime_ArgType I_runtime_get_arg_type(I_Runtime *runtime){
     I_Runtime_Arg *arg = GetLinkedListHead((*runtime), I_Runtime_Arg);
     return arg->type;
+}
+
+int I_runtime_get_args_count(I_Runtime *runtime){
+    return GetLinkedListLen((*runtime), I_Runtime_Arg);
 }

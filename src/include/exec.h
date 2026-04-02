@@ -79,4 +79,8 @@ void I_runtime_add_function(I_Runtime *runtime, char *name, void (*callback)(str
 char *I_runtime_pop_string(I_Runtime *runtime);
 
 int I_runtime_pop_int(I_Runtime *runtime);
+
+I_Runtime_ArgType I_runtime_get_arg_type(I_Runtime *runtime);
+
+int I_runtime_get_args_count(I_Runtime *runtime);
 #endif

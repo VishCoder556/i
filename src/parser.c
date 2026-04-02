@@ -94,6 +94,9 @@ I_AST_Statement I_parser_parse_statement(I_Parser *parser){
                 assert(0 && "Something weird happened here || an error in the expr parsing that is apparent in the function statement argument parsing");
             }
             AppendToLinkedList(stmnt.data.funcall, I_AST_Expr, expr);
+            if (parser->tokens[parser->cur].type != I_TOKEN_RP){
+                I_parser_expect(parser, I_TOKEN_COMMA);
+            }
         };
         I_parser_expect(parser, I_TOKEN_RP);
     }
@@ -106,7 +109,7 @@ char I_parser_parse_body(I_Parser *parser){
         return 0;
     }
     I_Token token = parser->tokens[parser->cur];
-    assert(I_TOKEN_MAX == 8 && "Exhaustive handling of tokens -- please implement how the token should be parsed here");
+    assert(I_TOKEN_MAX == 9 && "Exhaustive handling of tokens -- please implement how the token should be parsed here");
     assert(I_AST_BODY_MAX == 1 && "Exhaustive handling of ASTs -- please implement how tokens can be parsed to the AST");
     if (token.type == I_TOKEN_ID){
         I_Type type;

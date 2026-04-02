@@ -19,10 +19,14 @@ char *I_expect_arg(int *argused, int argc, char ***argv){
 }
 
 void _print(struct I_Runtime *runtime){
-    printf("%s\n", I_runtime_pop_string(runtime));
-}
-void _ret(struct I_Runtime *runtime){
-    printf("%d\n", I_runtime_pop_int(runtime));
+    for (int i=0; i<I_runtime_get_args_count(runtime); i++){
+        switch (I_runtime_get_arg_type(runtime)){
+            case I_RUNTIME_STRING: printf("%s ", I_runtime_pop_string(runtime)); break;
+            case I_RUNTIME_INT: printf("%d ", I_runtime_pop_int(runtime)); break;
+            default: assert(0 && "Unknown type found");
+        };
+    }
+    printf("\n");
 }
 
 int main(int argc, char **argv){
@@ -70,7 +74,6 @@ int main(int argc, char **argv){
 
     };
     I_runtime_add_function(runtime, "print", _print);
-    I_runtime_add_function(runtime, "ret", _ret);
 
 
     I_Runtime_Function *func = I_runtime_find_function(runtime, "main");

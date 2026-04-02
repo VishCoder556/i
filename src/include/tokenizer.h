@@ -10,7 +10,7 @@ typedef enum {
     I_TOKEN_LP,
     I_TOKEN_RP,
     I_TOKEN_STRING,
-    
+    I_TOKEN_COMMA,
     I_TOKEN_MAX, // Marker to know how many tokens we have
     // Keep adding on eventually
 }I_TokenType;

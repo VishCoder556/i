@@ -51,10 +51,11 @@ char *I_char_to_string(char c){
 char I_tokenizer_token(I_Tokenizer *tokenizer){
     char c = tokenizer->buffer[tokenizer->cur];
 
-    assert(I_TOKEN_MAX == 8 && "Exhaustive handling of tokens -- please implement token here");
+    assert(I_TOKEN_MAX == 9 && "Exhaustive handling of tokens -- please implement token here");
     // Assertion style copied from Tsoding Daily in his programming language Porth (P.S. you should check it out);
 
     switch (c){
+        case ',': I_tokenizer_append(tokenizer, I_TOKEN_COMMA, I_tokenizer_advance(tokenizer)); break;
         case '=': I_tokenizer_append(tokenizer, I_TOKEN_EQ, I_tokenizer_advance(tokenizer)); break;
         case '{': I_tokenizer_append(tokenizer, I_TOKEN_LB, I_tokenizer_advance(tokenizer)); break;
         case '}': I_tokenizer_append(tokenizer, I_TOKEN_RB, I_tokenizer_advance(tokenizer)); break;
